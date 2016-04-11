@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import re
-from datetime import date, timedelta
+from datetime import date, timedelta, datetime
+import argparse
 
 from redmine import Redmine
 from toggl import Toggl
@@ -22,7 +23,7 @@ class TimeTracking(object):
         """
         today = working_date.strftime("%Y-%m-%dT%H:%M:%S+00:00")
         tomorrow = (working_date + timedelta(1)).strftime("%Y-%m-%dT%H:%M:%S+00:00")
-        print ("tracking time entries for date {}".format(today))
+        print("tracking time entries for date {}".format(today))
 
         entries = self.toggle_api.get_time_entries(today,  tomorrow)
         for entry in entries:
@@ -35,14 +36,31 @@ class TimeTracking(object):
                     issue_id=issue_id,
                     hours=hours,
                     activity_id=DEFAULT_ACTIVITY_ID,
-                    comments=''
+                    comments='',
+                    spent_on=working_date.strftime("%Y-%m-%d")
                 )
                 if time_entry:
-                    print ("succesfuly tracked time for issue {} ({} hours)".format(issue_id, hours))
+                    print("succesfuly tracked time for issue {} ({} hours)".format(issue_id, hours))
                 else:
-                    print ("failed tracking issue {}".format(issue_id))
+                    print("failed tracking issue {}".format(issue_id))
+
+
+def valid_date(s):
+    try:
+        return datetime.strptime(s, "%Y-%m-%d")
+    except ValueError:
+        msg = "Not a valid date: '{0}'.".format(s)
+        raise argparse.ArgumentTypeError(msg)
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-d', "--date", dest='date', help="The Start Date - format YYYY-MM-DD ",
+                        required=False, type=valid_date)
+    args = parser.parse_args()
     time_tracking = TimeTracking()
-    time_tracking.set_time_entries(date.today())
+    if args.date:
+        entries_date = args.date
+    else:
+        entries_date = date.today()
+    time_tracking.set_time_entries(entries_date)
